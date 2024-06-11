@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { error } = require('console');
 const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 
 const UserController = {
@@ -46,6 +47,8 @@ const UserController = {
       res.status(500).json({error: 'Internal server error'})
     }
   },
+
+
   login: async(req, res) => {
     const { email, password} = req.body;
 
@@ -54,7 +57,7 @@ const UserController = {
     }
 
     try {
-      const user = await prisma.user.findUnique({ where: email});
+      const user = await prisma.user.findUnique(({ where: { email }}));
 
       if (!user) {
         return res.status(400).json({error: 'Неверный логин или пароль'})
@@ -67,18 +70,99 @@ const UserController = {
       }
 
       const token = jwt.sign(({ userId: user.id}), process.env.SECRET_KEY)
-    } catch(error) {
 
+      res.json({ token })
+    } catch(error) {
+      console.log('Login Error', error)
+      res.status(500).json({ error: 'Internal server error'})
     }
   },
+
   getUserById: async(req, res) => {
-    res.send('getUsrById')
+    const { id } = req.params;
+    const userId = req.user.userId;
+
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id },
+        include: {
+          followers: true,
+          following: true
+        }
+      })
+
+      if (!user) {
+        return res.status(404).json({ error: 'Пользователь не найден' })
+      }
+
+      const isFollowing = await prisma.follows.findFirst({
+        where: {
+          AND: [
+            { followerId: userId},
+            { followingId: id }
+          ]
+        }
+      })
+
+      res.json({ ...user, isFollowing: Boolean(isFollowing)})
+    } catch (error) {
+      console.log('Get current error', error)
+
+      res.status(500).json({ error: 'Internal server error'})
+    }
   },
+
   updateUser: async(req, res) => {
-    res.send('updateUser')
+    const { id } = req.params;
+    const { email, name, dateOfBirth, bio, location } = req.body;
+
+    let filePath;
+
+    if (req.file && req.file.path) {
+      filePath = req.file.path
+    }
+
+    if (id !== req.user.userId) {
+      return res.status(403).json({ error: 'нет доступа'})
+    }
+
+    try {
+      if (email) {
+        const existingUser = await prisma.user.findFirst({
+          where: { email: email }
+        })
+
+        if (existingUser && existingUser.id !== id) {
+          return res.status(400).json({ error: 'Почта уже используется'})
+        }
+      }
+
+      const user = await prisma.user.update({
+        where: { id },
+        data: {
+          email: email || undefined,
+          name: name || undefined,
+          avatarUrl: filePath ? `/${filePath}` : undefined,
+          dateOfBirth: dateOfBirth || undefined,
+          bio: bio || undefined,
+          location: location || undefined
+        }
+      })
+
+      res.json(user)
+    } catch (error) {
+      console.log('Update user error', error)
+      res.status(500).json({ error: 'Internal server error'})
+    }
   },
+
   current: async(req, res) => {
-    res.send('current')
+    
+    try {
+
+    } catch (error) {
+
+    }
   },
 }
 
