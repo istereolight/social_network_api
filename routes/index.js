@@ -4,6 +4,9 @@ const multer = require('multer');
 const UserController = require('../controllers');
 const authenticateToken = require('../middleware/auth');
 const PostController = require('../controllers/post-controller');
+const CommentController = require('../controllers/comment-controller');
+const LikeController = require('../controllers/like-controller');
+const FollowController = require('../controllers/follow-controller');
 
 const uploadDestination = 'uploads';
 
@@ -30,6 +33,18 @@ router.post('/posts', authenticateToken, PostController.createPost)
 router.get('/posts', authenticateToken, PostController.getAllPosts)
 router.get('/posts/:id', authenticateToken, PostController.getPostById)
 router.delete('/posts/:id', authenticateToken, PostController.deletePost)
+
+//Роуты комментов
+router.post('/comments', authenticateToken, CommentController.createComment)
+router.delete('/comments/:id', authenticateToken, CommentController.deleteComment)
+
+//Роуты лайков
+router.post('/likes', authenticateToken, LikeController.likePost)
+router.delete('/likes/:id', authenticateToken, LikeController.unlikePost)
+
+//Роуты подписок
+router.post('/follow', authenticateToken, FollowController.followUser)
+router.delete('/unfollow/:id', authenticateToken, FollowController.unfollowUser)
 
 
 module.exports = router;

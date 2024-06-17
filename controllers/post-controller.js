@@ -26,6 +26,7 @@ const PostController = {
       res.status(500).json({error: 'Internal server error'})
     }
   },
+
   getAllPosts: async (req, res) => {
     const userId = req.user.userId;
 
@@ -53,6 +54,7 @@ const PostController = {
       res.status(500).json({ error: 'Internal server error'})
     }
   },
+
   getPostById: async (req, res) => {
     const { id } = req.params;
     const userId = req.user.userId;
@@ -79,28 +81,29 @@ const PostController = {
         }
         res.json(postWithLikeInfo)
     } catch (error) {
-      console.error('Get post by id error')
+      console.error('Get post by id error', error)
       res.status(500).json({ error: 'Internal server error'})
     }
   },
+
   deletePost: async (req, res) => {
     const { id } = req.params;
 
-    const post = await prisma.post.findUnique({
-      where: {
-        id
-      }
-    })
-
-    if (!post) {
-      return res.status(404).json({ error: 'пост не найден'})
-    }
-
-    if (post.authorId !== req.user.userId) {
-      return res.status(403).json({ error: 'Нет доступа'})
-    }
-
     try {
+      const post = await prisma.post.findUnique({
+        where: {
+          id
+        }
+      })
+  
+      if (!post) {
+        return res.status(404).json({ error: 'пост не найден'})
+      }
+  
+      if (post.authorId !== req.user.userId) {
+        return res.status(403).json({ error: 'Нет доступа'})
+      }
+
       const transaction = await prisma.$transaction([
         prisma.comment.deleteMany({ where: { postId: id }}),
         prisma.like.deleteMany({ where: { postId: id }}),
